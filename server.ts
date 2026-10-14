@@ -28,7 +28,7 @@ app.post('/api/ask', async (req: Request, res: Response) => {
     if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: prompt.trim(),
         config: {
           systemInstruction:

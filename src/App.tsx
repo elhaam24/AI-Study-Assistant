@@ -109,7 +109,7 @@ export default function App() {
             📚 AI Study Assistant
           </h1>
           <p className="text-sm text-gray-500 max-w-md">
-            Ask any study topic, concept, or question to get quick, clean explanations powered by Gemini 2.5 Flash.
+            Ask any study topic, concept, or question to get quick, clean explanations powered by Gemini 3.8 Flash.
           </p>
         </header>
 
@@ -250,7 +250,7 @@ export default function App() {
 
         {/* Minimal Footer */}
         <footer className="w-full mt-6 pt-4 border-t border-gray-100 flex items-center justify-center text-[12px] text-gray-400">
-          <span>Connected to Gemini 2.5 Flash</span>
+          <span>Connected to Gemini 3.8 Flash</span>
         </footer>
 
       </div>
