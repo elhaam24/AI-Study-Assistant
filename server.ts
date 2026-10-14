@@ -28,11 +28,11 @@ app.post('/api/ask', async (req: Request, res: Response) => {
     if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt.trim(),
         config: {
           systemInstruction:
-            'You are a friendly, concise, and highly effective AI Study Assistant. Help students comprehend concepts clearly, provide structured summaries, bullet points, key takeaways, mnemonics, or practice questions when appropriate. Format with clear readable markdown.',
+            'You are a friendly, concise, and highly effective AI Study Assistant. Help students comprehend concepts clearly, provide structured summaries, bullet points, key takeaways, mnemonics, or practice questions when appropriate.',
         },
       });
 

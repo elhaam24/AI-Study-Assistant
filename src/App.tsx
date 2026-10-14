@@ -23,11 +23,15 @@ export default function App() {
     }
   }, []);
 
-  const handleAskGemini = async (textToSubmit?: string) => {
-    const query = (textToSubmit !== undefined ? textToSubmit : prompt).trim();
+  const handleAskGemini = async (overrideText?: string) => {
+    // Read text directly from #promptInput or state
+    const inputElement = document.getElementById('promptInput') as HTMLTextAreaElement | null;
+    const rawText = overrideText !== undefined ? overrideText : (inputElement ? inputElement.value : prompt);
+    const query = (rawText || '').trim();
+
     if (!query) {
-      setErrorMsg('Please enter a topic or study question.');
-      textareaRef.current?.focus();
+      setErrorMsg('Please enter a question or study topic.');
+      inputElement?.focus();
       return;
     }
 
@@ -47,20 +51,10 @@ export default function App() {
       }
 
       const data = await response.json();
-      setOutput(data.text || 'No response received.');
+      setOutput(data.text || 'No response returned from Gemini.');
     } catch (err: any) {
-      console.warn('API error, using local fallback:', err);
-      // Fallback study summary in case of network issue
-      setOutput(
-        `### 📖 Study Overview: ${query}\n\n` +
-        `#### 1. Core Principles\n` +
-        `- **Definition**: Essential concepts relating to "${query}".\n` +
-        `- **Key Takeaway**: Master the core definitions first before moving into advanced problem-solving.\n\n` +
-        `#### 2. Summary & Analysis\n` +
-        `Focus on understanding the cause-and-effect relationships and practical applications.\n\n` +
-        `#### 3. Self-Check Question\n` +
-        `Can you explain this topic in 2 sentences to a classmate without consulting notes?`
-      );
+      console.error('API error:', err);
+      setOutput(`Error: ${err?.message || 'Failed to connect to Gemini API.'}`);
     } finally {
       setIsLoading(false);
     }
@@ -88,62 +82,20 @@ export default function App() {
     setPrompt('');
     setOutput('');
     setErrorMsg('');
-    textareaRef.current?.focus();
+    const inputElement = document.getElementById('promptInput') as HTMLTextAreaElement | null;
+    if (inputElement) {
+      inputElement.value = '';
+      inputElement.focus();
+    }
   };
 
   const handleSelectSuggested = (item: string) => {
     setPrompt(item);
+    const inputElement = document.getElementById('promptInput') as HTMLTextAreaElement | null;
+    if (inputElement) {
+      inputElement.value = item;
+    }
     handleAskGemini(item);
-  };
-
-  // Helper to format output text with clean hierarchy
-  const renderFormattedOutput = (text: string) => {
-    const lines = text.split('\n');
-    return lines.map((line, idx) => {
-      if (line.startsWith('### ')) {
-        return (
-          <h3 key={idx} className="text-base font-semibold text-gray-800 mt-3 mb-1.5 first:mt-0">
-            {line.replace('### ', '')}
-          </h3>
-        );
-      }
-      if (line.startsWith('#### ')) {
-        return (
-          <h4 key={idx} className="text-sm font-semibold text-gray-700 mt-2.5 mb-1">
-            {line.replace('#### ', '')}
-          </h4>
-        );
-      }
-      if (line.startsWith('> ')) {
-        return (
-          <blockquote key={idx} className="border-l-2 border-gray-400 pl-3 my-2 text-sm italic text-gray-600 bg-gray-100/50 py-1 rounded-r">
-            {line.replace('> ', '')}
-          </blockquote>
-        );
-      }
-      if (line.startsWith('- ') || line.startsWith('* ')) {
-        return (
-          <li key={idx} className="ml-4 list-disc text-sm text-gray-700 mb-1 leading-relaxed">
-            {line.replace(/^[-*]\s+/, '')}
-          </li>
-        );
-      }
-      if (/^\d+\.\s/.test(line)) {
-        return (
-          <li key={idx} className="ml-4 list-decimal text-sm text-gray-700 mb-1 leading-relaxed">
-            {line.replace(/^\d+\.\s+/, '')}
-          </li>
-        );
-      }
-      if (line.trim() === '') {
-        return <div key={idx} className="h-1.5" />;
-      }
-      return (
-        <p key={idx} className="text-sm text-gray-700 mb-2 leading-relaxed">
-          {line}
-        </p>
-      );
-    });
   };
 
   return (
@@ -157,7 +109,7 @@ export default function App() {
             📚 AI Study Assistant
           </h1>
           <p className="text-sm text-gray-500 max-w-md">
-            Ask any study topic, concept, or question to get quick, clean explanations and revision notes.
+            Ask any study topic, concept, or question to get quick, clean explanations powered by Gemini 2.5 Flash.
           </p>
         </header>
 
@@ -182,8 +134,8 @@ export default function App() {
             {prompt && (
               <button
                 type="button"
-                onClick={() => setPrompt('')}
-                className="absolute right-3 top-3 text-xs text-gray-400 hover:text-gray-600 px-2 py-1 bg-gray-200/60 rounded hover:bg-gray-200 transition"
+                onClick={handleClear}
+                className="absolute right-3 top-3 text-xs text-gray-400 hover:text-gray-600 px-2 py-1 bg-gray-200/60 rounded hover:bg-gray-200 transition cursor-pointer"
                 title="Clear input"
               >
                 Clear
@@ -202,11 +154,11 @@ export default function App() {
             </span>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-              {output && (
+              {output && !isLoading && (
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="px-3.5 py-2 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition inline-flex items-center gap-1.5"
+                  className="px-3.5 py-2 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   Reset
@@ -216,24 +168,13 @@ export default function App() {
               {/* Required 'Ask Gemini' Button */}
               <button
                 type="button"
+                id="askGeminiBtn"
                 disabled={isLoading}
                 onClick={() => handleAskGemini()}
-                className="w-full sm:w-auto px-6 py-2.5 bg-gray-900 hover:bg-gray-800 active:bg-black text-white text-sm font-medium rounded-xl transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xs"
+                className="w-full sm:w-auto px-6 py-2.5 bg-gray-900 hover:bg-gray-800 active:bg-black text-white text-sm font-medium rounded-xl transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xs cursor-pointer"
               >
-                {isLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                    Thinking...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 text-gray-300" />
-                    Ask Gemini
-                  </>
-                )}
+                <Sparkles className="w-4 h-4 text-gray-300" />
+                Ask Gemini
               </button>
             </div>
           </div>
@@ -251,7 +192,7 @@ export default function App() {
                 key={idx}
                 type="button"
                 onClick={() => handleSelectSuggested(item)}
-                className="text-xs bg-gray-100 hover:bg-gray-200/80 text-gray-600 px-2.5 py-1.5 rounded-lg text-left transition flex items-center gap-1 border border-gray-200/60"
+                className="text-xs bg-gray-100 hover:bg-gray-200/80 text-gray-600 px-2.5 py-1.5 rounded-lg text-left transition flex items-center gap-1 border border-gray-200/60 cursor-pointer"
               >
                 <span>{item}</span>
                 <ArrowRight className="w-3 h-3 text-gray-400 opacity-60" />
@@ -271,7 +212,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleCopy}
-                className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1 transition"
+                className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1 transition cursor-pointer"
                 title="Copy to clipboard"
               >
                 {copied ? (
@@ -291,17 +232,12 @@ export default function App() {
 
           <div
             id="outputContainer"
-            className="w-full min-h-[140px] p-5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 text-sm transition-all overflow-x-auto"
+            className="w-full min-h-[140px] p-5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 text-sm transition-all overflow-x-auto whitespace-pre-wrap leading-relaxed font-sans"
           >
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-8 text-gray-400 space-y-2">
-                <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin"></div>
-                <p className="text-xs text-gray-500 font-medium">Analyzing concept and synthesizing study notes...</p>
-              </div>
+              'Thinking...'
             ) : output ? (
-              <div className="prose prose-sm max-w-none text-gray-800">
-                {renderFormattedOutput(output)}
-              </div>
+              output
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-gray-400 text-center">
                 <HelpCircle className="w-8 h-8 text-gray-300 mb-2 stroke-[1.5]" />
@@ -314,7 +250,7 @@ export default function App() {
 
         {/* Minimal Footer */}
         <footer className="w-full mt-6 pt-4 border-t border-gray-100 flex items-center justify-center text-[12px] text-gray-400">
-          <span>Clean &amp; Minimalist AI Study Assistant</span>
+          <span>Connected to Gemini 2.5 Flash</span>
         </footer>
 
       </div>
