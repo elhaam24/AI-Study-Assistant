@@ -1,0 +1,6 @@
+{
+  "name": "AI Study Assistant",
+  "description": "A minimalist, clean, and modern AI Study Assistant to summarize notes, explain concepts, and generate study guides.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
